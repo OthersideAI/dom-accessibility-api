@@ -26,6 +26,7 @@
 		"build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
 		"format": "prettier \"**/*.{json,js,md,ts,yml}\" --write --ignore-path .prettierignore",
 		"lint": "eslint --report-unused-disable-directives \"{scripts,sources}/**/*.{js,ts}\"",
+		"postinstall": "yarn build",
 		"release": "yarn build && yarn changeset publish",
 		"test": "jest --config scripts/jest/jest.config.js",
 		"test:ci": "jest --ci --config scripts/jest/jest.ci.config.js --runInBand",

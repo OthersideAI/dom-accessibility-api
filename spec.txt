@@ -1,0 +1,167 @@
+§ 4.3.2 Computation steps
+NOTE
+It's important to clarify the broad definition of hidden for the purposes of accessible
+name calculation:
+i. Nodes with CSS properties display:none, visibility:hidden,
+visibility:collapse or content-visibility:hidden: They are considered
+hidden, as they match the guidelines "not perceivable" and "explicitly hidden".
+ii. Nodes with CSS properties opacity:0 or filter:opacity(0%), or similar SVG
+mechanisms: They are not considered hidden. Text hidden with these methods can
+still be selected or copied, and user agents still expose it in their accessibility trees.
+iii. Nodes with the aria-hidden=
+"true" property: it is considered hidden, matching
+the "explicitly hidden" guideline.
+iv. Nodes hidden off screen or behind another object: they are not considered hidden.
+They are exposed in the accessibility tree and they can even name on-screen
+objects.
+NOTE
+By default, assistive technologies do not relay hidden information, but an author can
+explicitly override that and include hidden text as part of the accessible name or
+accessible description by using aria-labelledby or aria-describedby.
+B. LabelledBy: Otherwise, if the current node has an aria-labelledby attribute that
+contains at least one valid IDREF, and the current node is not already part of an ongoing
+aria-labelledby or aria-describedby traversal, process its IDREFs in the order they
+occur:
+i. Set the accumulated text to the empty string.
+ii. For each IDREF:
+a. Set the current node to the node referenced by the IDREF.
+b. LabelledBy Recursion: Compute the text alternative of the current node
+beginning with the overall Computation step. Set the result to that text
+alternative.
+c. Append a space character and the result to the accumulated text.
+EXAMPLE 1
+The following examples show the meaning of the clause "Not part of an aria-
+labelledby or aria-describedby traversal, where the node directy referenced by
+that relation was hidden.".
+First, element1's accessible name is "hello" because, although element3 is hidden, it
+is part of an aria-labelledby traversal started in element2, which is hidden too.
+EXAMPLE
+<element1 id="el1" role="button" aria-labelledby="el2" />
+<element2 id="el2" class="hidden">
+<element3 id="el3" class="hidden">hello</element3>
+</element2>
+EXAMPLE 2
+Conversely, element1 has no accessible name if element3 is hidden and it is part of an
+aria-labelledby traversal started in element2, but element2 is not hidden.
+<element1 id="el1" role="button" aria-labelledby="el2" />
+<element2 id="el2">
+<element3 id="el3" class="hidden">hello</element3>
+</element2>
+iii. Return the accumulated text if it is not the empty string ("").
+The result of LabelledBy Recursion in combination with Hidden Not Referenced means that
+user agents MUST include all nodes in the subtree as part of the accessible name or
+accessible description, when the node referenced by aria-labelledby or aria-
+describedby is hidden.
+C. Embedded Control: Otherwise, if the current node is a control embedded within the label
+(e.g. any element directly referenced by aria-labelledby) for another widget, where the
+user can adjust the embedded control's value, then return the embedded control as part of the
+text alternative in the following manner:
+i. Textbox: If the embedded control has role textbox, return its value.
+ii. Combobox/Listbox: If the embedded control has role combobox or listbox, return the
+text alternative of the chosen option.
+iii. Range: If the embedded control has role range (e.g., a spinbutton or slider):
+a. If the aria-valuetext property is present, return its value,
+b. Otherwise, if the aria-valuenow property is present, return its value,
+c. Otherwise, use the value as specified by a host language attribute.
+EXAMPLE 3
+The following example shows the meaning of the clause "… and the current node is
+not already part of an aria-labelledby traversal …" .
+i. element1's accessible name is "hello" because this is a first traversal of its aria-
+labelledby, leading to element3.
+ii. element2 has no accessible name. The computation involves a first traversal of its
+aria-labelledby leading to element1, but element1's aria-labelledby is
+not subsequently followed.
+<element1 id="el1" aria-labelledby="el3" />
+<element2 id="el2" aria-labelledby="el1" />
+<element3 id="el3"> hello </element3>
+D. AriaLabel: Otherwise, if the current node has an aria-label attribute whose value is
+not undefined, not the empty string, nor, when trimmed of whitespace, is not the empty
+string:
+i. If traversal of the current node is due to recursion and the current node is an
+embedded control, ignore aria-label and skip to rule Embedded Control.
+ii. Otherwise, return the value of aria-label.
+EXAMPLE 4
+Consider a check box label that contains a text input field: "Flash the screen [input]
+times". If the input field has the value "5", the complete label is "Flash the screen 5
+times", e.g.:
+<label for="flash">
+<input type="checkbox" id="flash">
+Flash the screen <span tabindex="0" role="textbox" aria-label="number of t
+</label>
+EXAMPLE 5
+The following example shows the interaction of aria-labelledby and aria-label
+when a node has an aria-labelledby that refers to itself. The <span
+role=
+"button"> elements have the accessible names "Delete Documentation.pdf" and
+"Delete HolidayLetter.pdf", respectively.
+EXAMPLE
+<h1>Files</h1>
+<ul>
+<li>
+<a id="file_row1" href="./files/Documentation.pdf">Documentation.pdf</
+<span role="button" tabindex="0" id="del_row1" aria-label="Delete" ari
+</li>
+<li>
+<a id="file_row2" href="./files/HolidayLetter.pdf">HolidayLetter.pdf</
+<span role="button" tabindex="0" id="del_row2" aria-label="Delete" ari
+</li>
+</ul>
+E. Host Language Label: Otherwise, if the current node's native markup provides an
+attribute (e.g. alt) or element (e.g. HTML label or SVG title) that defines a text
+alternative, return that alternative in the form of a flat string as defined by the host
+language, unless the element is marked as presentational (role=
+"presentation"
+or
+role=
+"none").
+NOTE
+See HTML-AAM, SVG-AAM, or other host language documentation for more
+information on markup that defines a text alternative.
+NOTE
+For example, in HTML, the img element's alt attribute defines a text alternative string,
+and the label element provides text for the referenced form element. In SVG2, the
+desc and title elements provide a description of their parent element.
+F. Name From Content: Otherwise, if the current node's role allows name from content, or
+if the current node is referenced by aria-labelledby, aria-describedby, or is a
+native host language text alternative element (e.g. label in HTML), or is a descendant of a
+native host language text alternative element:
+i. Name From Content Reset: Set the accumulated text to the empty string.
+ii. Name From Generated Content: Check for CSS generated textual content associated
+with the current node and include it in the accumulated text. The CSS
+::before and ::after pseudo elements [CSS2] can provide textual content for
+elements that have a content model.
+a. For ::before pseudo elements, User agents MUST prepend CSS textual content,
+without a space, to the textual content of the current node.
+b. For ::after pseudo elements, User agents MUST append CSS textual content,
+without a space, to the textual content of the current node.
+iii. Name From Each Child: For each child node of the current node:
+a. Set the current node to the child node.
+b. Compute the text alternative of the current node beginning with the overall
+Computation step. Set the result to that text alternative.
+c. Append the result to the accumulated text.
+iv. Return the accumulated text if it is not the empty string ("").
+Important: Each node in the subtree is consulted only once. If text has been collected from
+a descendant, but is referenced by another IDREF in some descendant node, then that
+second, or subsequent, reference is not followed. This is done to avoid infinite loops.
+NOTE
+This step can apply to the child nodes themselves, which means the computation is
+recursive and results in text collected from all the elements in the current node's
+subtree, no matter how deep it is. However, any given descendant node's text alternative
+can result from higher precedent markup described in steps B through D above, where
+"Namefrom: author" attributes provide the text alternative for the entire subtree.
+G. Text Node: Otherwise, if the current node is a Text Node, return its textual contents.
+H. Recursive Name From Content: Otherwise, if the current node is a descendant of an
+element whose Accessible Name or Accessible Description is being computed, and contains
+descendants, proceed to Name From Content Reset.
+I. Tooltip: Otherwise, if the current node has a Tooltip attribute, return its value.
+NOTE
+Tooltip attributes are used only if nothing else, including subtree content, has provided
+results.
+J. Append a space character and the result of each step above to the total accumulated
+text.
+3. After all steps are completed, the total accumulated text is used as the accessible name or
+accessible description of the element that initiated the computation.
+Information concerning name and description accessibility API mappings, including relationships,
+such as labelled-by/label-for and described-by/description-for, is documented in the Core Accessibility
+API Mappings specification [CORE-AAM-1.2]. See the mapping table entries for aria-label,
+aria-labelledby, and aria-describedby.
